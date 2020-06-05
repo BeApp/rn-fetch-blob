@@ -1,19 +1,26 @@
 package com.RNFetchBlob.Utils;
 
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.content.ContentUris;
-import android.os.Environment;
-import android.content.ContentResolver;
+import android.provider.OpenableColumns;
+
+import androidx.annotation.NonNull;
+
 import com.RNFetchBlob.RNFetchBlobUtils;
+
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class PathResolver {
     @TargetApi(19)
@@ -39,23 +46,48 @@ public class PathResolver {
             else if (isDownloadsDocument(uri)) {
                 try {
                     final String id = DocumentsContract.getDocumentId(uri);
+
                     //Starting with Android O, this "id" is not necessarily a long (row number),
                     //but might also be a "raw:/some/file/path" URL
                     if (id != null && id.startsWith("raw:/")) {
                         Uri rawuri = Uri.parse(id);
-                        String path = rawuri.getPath();
-                        return path;
+                        return rawuri.getPath();
                     }
-                    final Uri contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
 
-                    return getDataColumn(context, contentUri, null, null);
-                }
-                catch (Exception ex) {
+                    String[] contentUriPrefixesToTry = new String[]{
+                            "content://downloads/public_downloads",
+                            "content://downloads/my_downloads",
+                            "content://downloads/all_downloads"
+                    };
+
+                    for (String contentUriPrefix : contentUriPrefixesToTry) {
+                        Uri contentUri = ContentUris.withAppendedId(Uri.parse(contentUriPrefix), Long.valueOf(id));
+                        try {
+                            String path = getDataColumn(context, contentUri, null, null);
+                            if (path != null) {
+                                return path;
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+                    // path could not be retrieved using ContentResolver, therefore copy file to accessible cache using streams
+                    String fileName = getContentName(context.getContentResolver(), uri);
+                    File cacheDir = getDocumentCacheDir(context);
+                    File file = generateFileName(fileName, cacheDir);
+                    String destinationPath = null;
+                    if (file != null) {
+                        destinationPath = file.getAbsolutePath();
+                        saveFileFromUri(context, uri, destinationPath);
+                    } else {
+                        return "file nil";
+                    }
+
+                    return destinationPath;
+                } catch (Exception ex) {
                     //something went wrong, but android should still be able to handle the original uri by returning null here (see readFile(...))
-                    return null;
+                    return ex.getLocalizedMessage();
                 }
-                
+
             }
             // MediaProvider
             else if (isMediaDocument(uri)) {
@@ -73,13 +105,12 @@ public class PathResolver {
                 }
 
                 final String selection = "_id=?";
-                final String[] selectionArgs = new String[] {
+                final String[] selectionArgs = new String[]{
                         split[1]
                 };
 
-                return getDataColumn(context, contentUri, selection, selectionArgs);
-            }
-            else if ("content".equalsIgnoreCase(uri.getScheme())) {
+                return "MEDIADOCUMENT";// getDataColumn(context, contentUri, selection, selectionArgs);
+            } else if ("content".equalsIgnoreCase(uri.getScheme())) {
 
                 // Return the remote address
                 if (isGooglePhotosUri(uri))
@@ -88,7 +119,7 @@ public class PathResolver {
                 return getDataColumn(context, uri, null, null);
             }
             // Other Providers
-            else{
+            else {
                 try {
                     InputStream attachment = context.getContentResolver().openInputStream(uri);
                     if (attachment != null) {
@@ -116,9 +147,23 @@ public class PathResolver {
 
             // Return the remote address
             if (isGooglePhotosUri(uri))
-                return uri.getLastPathSegment();
+                return "uri.getLastPathSegment()";
 
-            return getDataColumn(context, uri, null, null);
+            String path = getDataColumn(context, uri, null, null);
+            if (path != null) {
+                return path;
+            }
+
+            String fileName = getContentName(context.getContentResolver(), uri);
+            File cacheDir = getDocumentCacheDir(context);
+            File file = generateFileName(fileName, cacheDir);
+            String destinationPath = null;
+            if (file != null) {
+                destinationPath = file.getAbsolutePath();
+                saveFileFromUri(context, uri, destinationPath);
+            }
+
+            return destinationPath;
         }
         // File
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
@@ -144,9 +189,9 @@ public class PathResolver {
      * Get the value of the data column for this Uri. This is useful for
      * MediaStore Uris, and other file-based ContentProviders.
      *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @param selection (Optional) Filter used in the query.
+     * @param context       The context.
+     * @param uri           The Uri to query.
+     * @param selection     (Optional) Filter used in the query.
      * @param selectionArgs (Optional) Selection arguments used in the query.
      * @return The value of the _data column, which is typically a file path.
      */
@@ -155,7 +200,7 @@ public class PathResolver {
 
         Cursor cursor = null;
         String result = null;
-        final String column = "_data";
+        final String column = MediaStore.Images.Media.DATA;
         final String[] projection = {
                 column
         };
@@ -163,16 +208,14 @@ public class PathResolver {
         try {
             cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
                     null);
+
             if (cursor != null && cursor.moveToFirst()) {
                 final int index = cursor.getColumnIndexOrThrow(column);
                 result = cursor.getString(index);
             }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception e) {
             return null;
-        }
-        finally {
+        } finally {
             if (cursor != null)
                 cursor.close();
         }
@@ -212,4 +255,73 @@ public class PathResolver {
         return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
 
+
+    private static void saveFileFromUri(Context context, Uri uri, String destinationPath) {
+        InputStream is = null;
+        BufferedOutputStream bos = null;
+        try {
+            is = context.getContentResolver().openInputStream(uri);
+            bos = new BufferedOutputStream(new FileOutputStream(destinationPath, false));
+            byte[] buf = new byte[1024];
+            is.read(buf);
+            do {
+                bos.write(buf);
+            } while (is.read(buf) != -1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (is != null) is.close();
+                if (bos != null) bos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static final String DOCUMENTS_DIR = "documents";
+
+    public static File getDocumentCacheDir(@NonNull Context context) {
+        File dir = new File(context.getCacheDir(), DOCUMENTS_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
+    public static File generateFileName(String name, File directory) {
+        if (name == null) {
+            return null;
+        }
+
+        File file = new File(directory, name);
+
+        if (file.exists()) {
+            String fileName = name;
+            String extension = "";
+            int dotIndex = name.lastIndexOf('.');
+            if (dotIndex > 0) {
+                fileName = name.substring(0, dotIndex);
+                extension = name.substring(dotIndex);
+            }
+
+            int index = 0;
+
+            while (file.exists()) {
+                index++;
+                name = fileName + '(' + index + ')' + extension;
+                file = new File(directory, name);
+            }
+        }
+
+        try {
+            if (!file.createNewFile()) {
+                return null;
+            }
+        } catch (IOException e) {
+            return null;
+        }
+
+        return file;
+    }
 }
