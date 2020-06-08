@@ -10,7 +10,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.provider.OpenableColumns;
 
 import androidx.annotation.NonNull;
 
@@ -29,6 +28,11 @@ public class PathResolver {
         final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
         // DocumentProvider
+        if (uri != null && uri.getPath() != null && uri.getPath().contains("raw:")) {
+            final String[] split = uri.getPath().split("raw:");
+            return split[1];
+        }
+
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
             if (isExternalStorageDocument(uri)) {
@@ -79,7 +83,7 @@ public class PathResolver {
                         destinationPath = file.getAbsolutePath();
                         saveFileFromUri(context, uri, destinationPath);
                     } else {
-                        return "file nil";
+                        return null;
                     }
 
                     return destinationPath;
@@ -109,7 +113,8 @@ public class PathResolver {
                         split[1]
                 };
 
-                return "MEDIADOCUMENT";// getDataColumn(context, contentUri, selection, selectionArgs);
+
+                return getDataColumn(context, contentUri, selection, selectionArgs);
             } else if ("content".equalsIgnoreCase(uri.getScheme())) {
 
                 // Return the remote address
