@@ -1,10 +1,13 @@
 package com.ReactNativeBlobUtil.Utils;
 
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.content.ContentUris;
@@ -12,9 +15,16 @@ import android.content.ContentResolver;
 
 import com.ReactNativeBlobUtil.ReactNativeBlobUtilUtils;
 
+
+import androidx.annotation.NonNull;
+
+import com.RNFetchBlob.RNFetchBlobUtils;
+
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class PathResolver {
     @TargetApi(19)
@@ -23,6 +33,11 @@ public class PathResolver {
         final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
         // DocumentProvider
+        if (uri != null && uri.getPath() != null && uri.getPath().contains("raw:")) {
+            final String[] split = uri.getPath().split("raw:");
+            return split[1];
+        }
+
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
             if (isExternalStorageDocument(uri)) {
@@ -33,7 +48,7 @@ public class PathResolver {
                 if ("primary".equalsIgnoreCase(type)) {
                     File dir = context.getExternalFilesDir(null);
                     if (dir != null) return dir + "/" + split[1];
-                    return "";
+                    return null;
                 }
 
                 // TODO handle non-primary volumes
@@ -46,8 +61,24 @@ public class PathResolver {
                     //but might also be a "raw:/some/file/path" URL
                     if (id != null && id.startsWith("raw:/")) {
                         Uri rawuri = Uri.parse(id);
-                        String path = rawuri.getPath();
-                        return path;
+                        return rawuri.getPath();
+                    }
+
+                    String[] contentUriPrefixesToTry = new String[]{
+                            "content://downloads/public_downloads",
+                            "content://downloads/my_downloads",
+                            "content://downloads/all_downloads"
+                    };
+
+                    for (String contentUriPrefix : contentUriPrefixesToTry) {
+                        Uri contentUri = ContentUris.withAppendedId(Uri.parse(contentUriPrefix), Long.valueOf(id));
+                        try {
+                            String path = getDataColumn(context, contentUri, null, null);
+                            if (path != null) {
+                                return path;
+                            }
+                        } catch (Exception e) {
+                        }
                     }
 
                     Long docId = null;
@@ -165,7 +196,7 @@ public class PathResolver {
 
         Cursor cursor = null;
         String result = null;
-        final String column = "_data";
+        final String column = MediaStore.Images.Media.DATA;
         final String[] projection = {
                 column
         };
@@ -177,8 +208,7 @@ public class PathResolver {
                 final int index = cursor.getColumnIndexOrThrow(column);
                 result = cursor.getString(index);
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception e) {
             return null;
         } finally {
             if (cursor != null)

@@ -122,6 +122,7 @@ typedef NS_ENUM(NSUInteger, ResponseFormat) {
 
     if (timeout > 0) {
         defaultConfigObject.timeoutIntervalForRequest = timeout/1000;
+        defaultConfigObject.timeoutIntervalForResource = timeout/1000;
     }
 
     if([options valueForKey:CONFIG_WIFI_ONLY] != nil && ![options[CONFIG_WIFI_ONLY] boolValue]){
