@@ -3,24 +3,34 @@
 // Definitions by: MNB <https://github.com/MNBuyskih>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
-export const RNFetchBlob: RNFetchBlobStatic;
-export type RNFetchBlob = RNFetchBlobStatic;
-export default RNFetchBlob;
+export const ReactNativeBlobUtil: ReactNativeBlobUtilStatic;
+export type ReactNativeBlobUtil = ReactNativeBlobUtilStatic;
+export default ReactNativeBlobUtil;
+import {filedescriptor} from './types';
+import CanceledFetchError from './class/ReactNativeBlobUtilCanceledFetchError'
 
-interface RNFetchBlobStatic {
+interface ReactNativeBlobUtilStatic {
     fetch(method: Methods, url: string, headers?: { [key: string]: string }, body?: any
         | null): StatefulPromise<FetchBlobResponse>;
+
     base64: { encode(input: string): string; decode(input: string): string };
     android: AndroidApi;
     ios: IOSApi;
-    config(options: RNFetchBlobConfig): RNFetchBlobStatic;
-    session(name: string): RNFetchBlobSession;
+
+    config(options: ReactNativeBlobUtilConfig): ReactNativeBlobUtilStatic;
+
+    session(name: string): ReactNativeBlobUtilSession;
+
     fs: FS;
+    MediaCollection: MediaCollection;
+
     wrap(path: string): string;
+
     net: Net;
     polyfill: Polyfill;
     // this require external module https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/oboe
     JSONStream: any;
+    CanceledFetchError: CanceledFetchError
 }
 
 export interface Polyfill {
@@ -33,97 +43,124 @@ export interface Polyfill {
     Fetch: PolyfillFetch;
 }
 
-export declare class PolyfillFetch extends RNFetchBlobFetchPolyfill {
-    constructor(config: RNFetchBlobConfig);
+export declare class PolyfillFetch extends ReactNativeBlobUtilFetchPolyfill {
+    constructor(config: ReactNativeBlobUtilConfig);
 }
 
-export declare class RNFetchBlobFetchPolyfill {
-    constructor(config: RNFetchBlobConfig);
+export declare class ReactNativeBlobUtilFetchPolyfill {
+    constructor(config: ReactNativeBlobUtilConfig);
 
-    build(): (url: string, options: RNFetchBlobConfig) => StatefulPromise<RNFetchBlobFetchRepsonse>;
+    build(): (url: string, options: ReactNativeBlobUtilConfig) => StatefulPromise<ReactNativeBlobUtilFetchRepsonse>;
 }
 
-export interface RNFetchBlobFetchRepsonse {
+export interface ReactNativeBlobUtilFetchRepsonse {
     arrayBuffer(): Promise<any[]>;
+
     blob(): Promise<PolyfillBlob>;
+
     json(): Promise<any>;
+
     rawResp(): Promise<FetchBlobResponse>;
+
     text(): Promise<string>;
+
     bodyUsed: boolean;
     headers: any;
     ok: boolean;
     resp: FetchBlobResponse;
     rnfbResp: FetchBlobResponse;
-    rnfbRespInfo: RNFetchBlobResponseInfo;
+    rnfbRespInfo: ReactNativeBlobUtilResponseInfo;
     status: number;
     type: string;
 }
 
 /**
- * RNFetchBlob response object class.
+ * ReactNativeBlobUtil response object class.
  */
 export interface FetchBlobResponse {
     taskId: string;
+
     /**
      * get path of response temp file
      * @return File path of temp file.
      */
     path(): string;
+
     type: "base64" | "path" | "utf8";
     data: any;
+
     /**
-     * Convert result to javascript RNFetchBlob object.
+     * Convert result to javascript ReactNativeBlobUtil object.
      * @return Return a promise resolves Blob object.
      */
     blob(contentType: string, sliceSize: number): Promise<PolyfillBlob>;
+
     /**
      * Convert result to text.
      * @return Decoded base64 string.
      */
     text(): string | Promise<any>;
+
     /**
      * Convert result to JSON object.
      * @return Parsed javascript object.
      */
     json(): any;
+
     /**
      * Return BASE64 string directly.
      * @return BASE64 string of response body.
      */
     base64(): any;
+
     /**
      * Remove cahced file
      */
     flush(): void;
-    respInfo: RNFetchBlobResponseInfo;
-    info(): RNFetchBlobResponseInfo;
-    session(name: string): RNFetchBlobSession | null;
+
+    respInfo: ReactNativeBlobUtilResponseInfo;
+
+    info(): ReactNativeBlobUtilResponseInfo;
+
+    session(name: string): ReactNativeBlobUtilSession | null;
+
     /**
      * Read file content with given encoding, if the response does not contains
      * a file path, show warning message
      * @param  encode Encode type, should be one of `base64`, `ascrii`, `utf8`.
      */
     readFile(encode: Encoding): Promise<any> | null;
+
     /**
      * Start read stream from cached file
      * @param  encode Encode type, should be one of `base64`, `ascrii`, `utf8`.
      */
-    readStream(encode: Encoding): RNFetchBlobStream | null;
+    readStream(encode: Encoding): ReactNativeBlobUtilStream | null;
 }
 
 export interface PolyfillFileReader extends EventTarget {
     isRNFBPolyFill: boolean;
+
     onloadstart(e: Event): void;
+
     onprogress(e: Event): void;
+
     onload(e: Event): void;
+
     onabort(e: Event): void;
+
     onerror(e: Event): void;
+
     onloadend(e: Event): void;
 
     abort(): void;
+
     readAsArrayBuffer(b: PolyfillBlob): void;
+
     readAsBinaryString(b: PolyfillBlob): void;
+
     readAsText(b: PolyfillBlob, label?: string): void;
+
     readAsDataURL(b: PolyfillBlob): void;
 
     readyState: number;
@@ -147,7 +184,7 @@ export interface PolyfillProgressEvent extends EventTarget {
 
 export declare class PolyfillBlob implements EventTarget {
     /**
-     * RNFetchBlob Blob polyfill, create a Blob directly from file path, BASE64
+     * ReactNativeBlobUtil Blob polyfill, create a Blob directly from file path, BASE64
      * encoded data, and string. The conversion is done implicitly according to
      * given `mime`. However, the blob creation is asynchronously, to register
      * event `onCreated` is need to ensure the Blob is creadted.
@@ -170,9 +207,9 @@ export declare class PolyfillBlob implements EventTarget {
 
     /**
      * Get file reference of the Blob object.
-     * @return Blob file reference which can be consumed by RNFetchBlob fs
+     * @return Blob file reference which can be consumed by ReactNativeBlobUtil fs
      */
-    getRNFetchBlobRef(): string;
+    getReactNativeBlobUtilRef(): string;
 
     /**
      * Create a Blob object which is sliced from current object
@@ -227,7 +264,7 @@ export interface PolyfillXMLHttpRequest extends PolyfillXMLHttpRequestEventTarge
 
     /**
      * Invoke this function to send HTTP request, and set body.
-     * @param body Body in RNfetchblob flavor
+     * @param body Body in ReactNativeBlobUtil flavor
      */
     send(body: any): void;
 
@@ -242,6 +279,7 @@ export interface PolyfillXMLHttpRequest extends PolyfillXMLHttpRequestEventTarge
     getAllResponseHeaders(): string | null;
 
     onreadystatechange(e: Event): void;
+
     readyState: number;
     status: number;
     statusText: string;
@@ -270,11 +308,17 @@ export declare namespace PolyfillXMLHttpRequest {
 
 export interface PolyfillXMLHttpRequestEventTarget extends EventTarget {
     onabort(e: Event): void;
+
     onerror(e: Event): void;
+
     onload(e: Event): void;
+
     onloadstart(e: Event): void;
+
     onprogress(e: Event): void;
+
     ontimeout(e: Event): void;
+
     onloadend(e: Event): void;
 }
 
@@ -295,8 +339,9 @@ export interface Net {
 }
 
 type HashAlgorithm = "md5" | "sha1" | "sha224" | "sha256" | "sha384" | "sha512";
+
 export interface FS {
-    RNFetchBlobSession: RNFetchBlobSession;
+    ReactNativeBlobUtilSession: ReactNativeBlobUtilSession;
 
     /**
      * Remove file at path.
@@ -314,7 +359,7 @@ export interface FS {
      * Get a file cache session
      * @param  name Stream ID
      */
-    session(name: string): RNFetchBlobSession;
+    session(name: string): ReactNativeBlobUtilSession;
 
     ls(path: string): Promise<string[]>;
 
@@ -331,9 +376,9 @@ export interface FS {
      * @param  path   The file path.
      * @param  encoding Data encoding, should be one of `base64`, `utf8`, `ascii`
      * @param  bufferSize Size of stream buffer.
-     * @return RNFetchBlobStream stream instance.
+     * @return ReactNativeBlobUtilStream stream instance.
      */
-    readStream(path: string, encoding: Encoding, bufferSize?: number, tick?: number): Promise<RNFetchBlobReadStream>;
+    readStream(path: string, encoding: Encoding, bufferSize?: number, tick?: number): Promise<ReactNativeBlobUtilReadStream>;
 
     mv(path: string, dest: string): Promise<boolean>;
 
@@ -346,7 +391,7 @@ export interface FS {
      * @param  append  A flag represent if data append to existing ones.
      * @return A promise resolves a `WriteStream` object.
      */
-    writeStream(path: string, encoding: Encoding, append?: boolean): Promise<RNFetchBlobWriteStream>;
+    writeStream(path: string, encoding: Encoding, append?: boolean): Promise<ReactNativeBlobUtilWriteStream>;
 
     /**
      * Write data to file.
@@ -356,6 +401,14 @@ export interface FS {
      */
     writeFile(path: string, data: string | number[], encoding?: Encoding): Promise<void>;
 
+    /**
+     * Processes the data and then writes to the file.
+     * @param  path  Path of the file.
+     * @param  data Data to write to the file.
+     * @param  encoding Encoding of data (Optional).
+     */
+     writeFileWithTransform(path: string, data: string | number[], encoding?: Encoding): Promise<void>;
+
     appendFile(path: string, data: string | number[], encoding?: Encoding | "uri"): Promise<number>;
 
     /**
@@ -364,6 +417,14 @@ export interface FS {
      * @param  encoding Encoding of read stream.
      */
     readFile(path: string, encoding: Encoding, bufferSize?: number): Promise<any>;
+
+    /**
+     * Reads from a file and then processes the data before returning
+     * @param  path Path of the file.
+     * @param  encoding Encoding of read stream.
+     */
+     readFileWithTransform(path: string, encoding: Encoding, bufferSize?: number): Promise<any>;
+
     /**
      * Check if file exists and if it is a folder.
      * @param  path Path to check
@@ -378,9 +439,9 @@ export interface FS {
      * Show statistic data of a path.
      * @param  path Target path
      */
-    stat(path: string): Promise<RNFetchBlobStat>;
+    stat(path: string): Promise<ReactNativeBlobUtilStat>;
 
-    lstat(path: string): Promise<RNFetchBlobStat[]>;
+    lstat(path: string): Promise<ReactNativeBlobUtilStat[]>;
 
     /**
      * Android only method, request media scanner to scan the file.
@@ -391,9 +452,25 @@ export interface FS {
     dirs: Dirs;
 
     slice(src: string, dest: string, start: number, end: number): Promise<void>;
+
     asset(path: string): string;
-    df(): Promise<{ free: number, total: number }>;
+
+    df(): Promise<RNFetchBlobDf>;
 }
+
+export interface RNFetchBlobDfIOS {
+    free?: number;
+    total?: number;
+}
+
+export interface RNFetchBlobDfAndroid {
+    external_free?: string;
+    external_total?: string;
+    internal_free?: string;
+    internal_total?: string;
+}
+
+export type RNFetchBlobDf = RNFetchBlobDfIOS & RNFetchBlobDfAndroid;
 
 export interface Dirs {
     DocumentDir: string;
@@ -406,18 +483,26 @@ export interface Dirs {
     DCIMDir: string;
     SDCardDir: string;
     MainBundleDir: string;
+
+    LegacyPictureDir: string;
+    LegacyMusicDir: string;
+    LegacyMovieDir: string;
+    LegacyDownloadDir: string;
+    LegacyDCIMDir: string;
+    LegacySDCardDir: string; // Depracated
 }
 
-export interface RNFetchBlobWriteStream {
+export interface ReactNativeBlobUtilWriteStream {
     id: string;
     encoding: string;
     append: boolean;
 
     write(data: string): Promise<void>;
-    close(): void;
+
+    close(): Promise<void>;
 }
 
-export interface RNFetchBlobReadStream {
+export interface ReactNativeBlobUtilReadStream {
     path: string;
     encoding: Encoding;
     bufferSize?: number;
@@ -441,14 +526,43 @@ export interface IOSApi {
      * Open a file in {@link https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller UIDocumentInteractionController},
      * this is the default document viewer of iOS, supports several kinds of files. On Android, there's an similar method {@link android.actionViewIntent}.
      * @param path This is a required field, the path to the document. The path should NOT contains any scheme prefix.
+     * @param  {string} scheme URI scheme that needs to support, optional
      */
-    previewDocument(path: string): void;
+    previewDocument(path: string, scheme?: string): void;
 
     /**
      * Show options menu for interact with the file.
      * @param path This is a required field, the path to the document. The path should NOT contains any scheme prefix.
+     * @param  {string} scheme URI scheme that needs to support, optional
      */
-    openDocument(path: string): void;
+    openDocument(path: string, scheme?: string): void;
+
+    /**
+     * Displays an options menu using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentOptionsMenu](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616814-presentoptionsmenu)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentOptionsMenu(path: string, scheme?: string): void;
+
+    /**
+     * Displays a menu for opening the document using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentOpenInMenu](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616807-presentopeninmenu)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentOpenInMenu(path: string, scheme?: string): void;
+
+    /**
+     * Displays a full-screen preview of the target document using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentPreview](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616828-presentpreview)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentPreview(path: string, scheme?: string): void;
+
+    /**
+     * Marks the file to be excluded from icloud/itunes backup. Works recursively if path is to a directory
+     * @param {string} path  Path to a file or directory to mark to be excluded.
+     */
+    excludeFromBackupKey(path: string): Promise<void>;
 }
 
 export interface AndroidDownloadOption {
@@ -475,7 +589,7 @@ export interface AndroidDownloadOption {
     /**
      * Boolean value that determines if notification will be displayed.
      */
-    showNotification: boolean 
+    showNotification: boolean
 }
 
 export interface AndroidApi {
@@ -484,11 +598,12 @@ export interface AndroidApi {
      * App to handle the file. For example, open Gallery app to view an image, or install APK.
      * @param path Path of the file to be opened.
      * @param mime Basically system will open an app according to this MIME type.
+     * @param chooserTitle title for chooser, if not set the chooser won't be displayed (see [Android docs](https://developer.android.com/reference/android/content/Intent.html#createChooser(android.content.Intent,%20java.lang.CharSequence)))
      */
-    actionViewIntent(path: string, mime: string): Promise<any>;
+    actionViewIntent(path: string, mime: string, chooserTitle?: string): Promise<boolean | null>;
 
     /**
-     * 
+     *
      * This method brings up OS default file picker and resolves a file URI when the user selected a file.
      * However, it does not resolve or reject when user dismiss the file picker via pressing hardware back button,
      * but you can still handle this behavior via AppState.
@@ -507,7 +622,7 @@ export interface AndroidApi {
     getSDCardApplicationDir(): Promise<string>;
 }
 
-type Methods = "POST" | "GET" | "DELETE" | "PUT" | "post" | "get" | "delete" | "put";
+type Methods = "POST" | "GET" | "DELETE" | "PUT" | "PATCH" | "post" | "get" | "delete" | "put" | "patch";
 
 /**
  * A declare class inherits Promise, it has extra method like progress, uploadProgress,
@@ -547,12 +662,12 @@ export interface StatefulPromise<T> extends Promise<T> {
     expire(callback: () => void): StatefulPromise<void>;
 }
 
-export declare class RNFetchBlobSession {
+export declare class ReactNativeBlobUtilSession {
     constructor(name: string, list: string[]);
 
-    add(path: string): RNFetchBlobSession;
+    add(path: string): ReactNativeBlobUtilSession;
 
-    remove(path: string): RNFetchBlobSession;
+    remove(path: string): ReactNativeBlobUtilSession;
 
     dispose(): Promise<void>;
 
@@ -570,7 +685,12 @@ export declare class RNFetchBlobSession {
 /**
  * A set of configurations that will be injected into a fetch method, with the following properties.
  */
-export interface RNFetchBlobConfig {
+export interface ReactNativeBlobUtilConfig {
+
+    Progress?: { count?: number, interval?: number };
+    UploadProgress?: { count?: number, interval?: number };
+
+
     /**
      * When this property is true, the downloaded data will overwrite the existing file. (true by default)
      */
@@ -604,9 +724,16 @@ export interface RNFetchBlobConfig {
 
     /**
      * Set this property to true will makes response data of the fetch stored in a temp file, by default the temp
-     * file will stored in App's own root folder with file name template RNFetchBlob_tmp${timestamp}.
+     * file will stored in App's own root folder with file name template ReactNativeBlobUtil_tmp${timestamp}.
      */
     fileCache?: boolean;
+
+    /**
+     * Set this property to true if you want the data to be processed before it gets written onto disk.
+     * This only has effect if the FileTransformer has been registered and the library is configured to write
+     * response onto disk.
+     */
+    transformFile?: boolean;
 
     /**
      * Set this property to change temp file extension that created by fetch response data.
@@ -656,12 +783,16 @@ export interface AddAndroidDownloads {
      */
     mediaScannable?: boolean;
     /**
+     * Only for Android >= Q; Enforces the file being stored to the MediaCollection Downloads. This might overwrite any value given in "path"
+     */
+    storeInDownloads?: boolean;
+    /**
      * A boolean value decide whether show a notification when download complete.
      */
     notification?: boolean;
 }
 
-export interface RNFetchBlobResponseInfo {
+export interface ReactNativeBlobUtilResponseInfo {
     taskId: string;
     state: string;
     headers: any;
@@ -672,19 +803,70 @@ export interface RNFetchBlobResponseInfo {
     timeout: boolean;
 }
 
-export interface RNFetchBlobStream {
+export interface ReactNativeBlobUtilStream {
     onData(): void;
+
     onError(): void;
+
     onEnd(): void;
 }
 
-export declare class RNFetchBlobFile {
+export declare class ReactNativeBlobUtilFile {
 }
 
-export declare class RNFetchBlobStat {
+export declare class ReactNativeBlobUtilStat {
     lastModified: number;
     size: number;
     type: "directory" | "file";
     path: string;
     filename: string;
+}
+
+export type Mediatype = "Audio" | "Image" | "Video" | "Download";
+
+export interface MediaCollection {
+    /**
+     * Creates a new File in the collection.
+     * Promise will resolve to content UIR or error message
+     * @param filedata descriptor for the media store entry
+     * @param mediatype
+     * @param path path of the file being copied
+     */
+    copyToMediaStore(filedata: filedescriptor, mediatype: Mediatype, path: string): Promise<string>;
+
+
+    /**
+     * Creates a new File in the collection.
+     * @param filedata
+     * @param mediatype
+     */
+    createMediafile(filedata: filedescriptor, mediatype: Mediatype): Promise<string>;
+
+    /**
+     * Copies an existing file to a mediastore file
+     * @param uri URI of the destination mediastore file
+     * @param path Path to the existing file which should be copied
+     */
+    writeToMediafile(uri: string, path: string): Promise<string>
+
+    /**
+     * Copies and transforms an existing file to a mediastore file. Make sure FileTransformer is set
+     * @param uri URI of the destination mediastore file
+     * @param path Path to the existing file which should be copied
+     */
+    writeToMediafileWithTransform(uri: string, path: string): Promise<string>
+
+    /**
+     * Copies a file from the mediastore to the apps internal storage
+     * @param contenturi URI of the mediastore file
+     * @param destpath Path for the file in the internal storage
+     */
+    copyToInternal(contenturi: string, destpath: string): Promise<string>
+
+    /**
+     * Gets the blob data for a given URI in the mediastore
+     * @param contenturi
+     * @param encoding
+     */
+    getBlob(contenturi: string, encoding: string): Promise<string>
 }
