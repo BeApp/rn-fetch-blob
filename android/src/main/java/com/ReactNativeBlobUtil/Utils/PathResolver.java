@@ -1,5 +1,6 @@
 package com.ReactNativeBlobUtil.Utils;
 
+
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -7,24 +8,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.content.ContentUris;
-import android.content.ContentResolver;
-
 import com.ReactNativeBlobUtil.ReactNativeBlobUtilUtils;
-
-
-import androidx.annotation.NonNull;
-
-import com.RNFetchBlob.RNFetchBlobUtils;
-
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
+
 
 public class PathResolver {
     @TargetApi(19)
