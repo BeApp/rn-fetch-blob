@@ -1,6 +1,5 @@
 package com.ReactNativeBlobUtil.Utils;
 
-
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -10,13 +9,20 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.ReactNativeBlobUtil.ReactNativeBlobUtilUtils;
+
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
-
 public class PathResolver {
+    @Nullable
     @TargetApi(19)
     public static String getRealPathFromURI(final Context context, final Uri uri) {
 
@@ -71,18 +77,19 @@ public class PathResolver {
                         }
                     }
 
-                    Long docId = null;
-                    //Since Android 10, uri can start with msf scheme like "msf:12345"
-                    if (id != null && id.startsWith("msf:")) {
-                        final String[] split = id.split(":");
-                        docId = Long.valueOf(split[1]);
+                    // path could not be retrieved using ContentResolver, therefore copy file to accessible cache using streams
+                    String fileName = getContentName(context.getContentResolver(), uri);
+                    File cacheDir = getDocumentCacheDir(context);
+                    File file = generateFileName(fileName, cacheDir);
+                    String destinationPath = null;
+                    if (file != null) {
+                        destinationPath = file.getAbsolutePath();
+                        saveFileFromUri(context, uri, destinationPath);
+                        return destinationPath;
                     } else {
-                        docId = Long.valueOf(id);
+                        return null;
                     }
 
-                    final Uri contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"), docId);
-                    return getDataColumn(context, contentUri, null, null);
                 } catch (Exception ex) {
                     //something went wrong, but android should still be able to handle the original uri by returning null here (see readFile(...))
                     return null;
@@ -239,5 +246,78 @@ public class PathResolver {
     public static boolean isGooglePhotosUri(Uri uri) {
         return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
+
+
+
+
+    private static void saveFileFromUri(Context context, Uri uri, String destinationPath) {
+        InputStream is = null;
+        BufferedOutputStream bos = null;
+        try {
+            is = context.getContentResolver().openInputStream(uri);
+            bos = new BufferedOutputStream(new FileOutputStream(destinationPath, false));
+            byte[] buf = new byte[1024];
+            is.read(buf);
+            do {
+                bos.write(buf);
+            } while (is.read(buf) != -1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (is != null) is.close();
+                if (bos != null) bos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static final String DOCUMENTS_DIR = "documents";
+
+    public static File getDocumentCacheDir(@NonNull Context context) {
+        File dir = new File(context.getCacheDir(), DOCUMENTS_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
+    public static File generateFileName(String name, File directory) {
+        if (name == null) {
+            return null;
+        }
+
+        File file = new File(directory, name);
+
+        if (file.exists()) {
+            String fileName = name;
+            String extension = "";
+            int dotIndex = name.lastIndexOf('.');
+            if (dotIndex > 0) {
+                fileName = name.substring(0, dotIndex);
+                extension = name.substring(dotIndex);
+            }
+
+            int index = 0;
+
+            while (file.exists()) {
+                index++;
+                name = fileName + '(' + index + ')' + extension;
+                file = new File(directory, name);
+            }
+        }
+
+        try {
+            if (!file.createNewFile()) {
+                return null;
+            }
+        } catch (IOException e) {
+            return null;
+        }
+
+        return file;
+    }
+
 
 }
