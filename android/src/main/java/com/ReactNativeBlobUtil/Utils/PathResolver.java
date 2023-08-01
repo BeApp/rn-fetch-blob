@@ -109,6 +109,19 @@ public class PathResolver {
                     contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
                 } else if ("audio".equals(type)) {
                     contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                } else {
+                    // path could not be retrieved using ContentResolver, therefore copy file to accessible cache using streams
+                    String fileName = getContentName(context.getContentResolver(), uri);
+                    File cacheDir = getDocumentCacheDir(context);
+                    File file = generateFileName(fileName, cacheDir);
+                    String destinationPath = null;
+                    if (file != null) {
+                        destinationPath = file.getAbsolutePath();
+                        saveFileFromUri(context, uri, destinationPath);
+                        return destinationPath;
+                    } else {
+                        return null;
+                    }
                 }
 
                 final String selection = "_id=?";
