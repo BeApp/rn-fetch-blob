@@ -60,20 +60,21 @@ public class PathResolver {
                         return rawuri.getPath();
                     }
 
-                    String[] contentUriPrefixesToTry = new String[]{
-                            "content://downloads/public_downloads",
-                            "content://downloads/my_downloads",
-                            "content://downloads/all_downloads"
-                    };
-
-                    for (String contentUriPrefix : contentUriPrefixesToTry) {
-                        Uri contentUri = ContentUris.withAppendedId(Uri.parse(contentUriPrefix), Long.valueOf(id));
-                        try {
-                            String path = getDataColumn(context, contentUri, null, null);
-                            if (path != null) {
-                                return path;
+                    if (id != null && !id.startsWith("msf:")) {
+                        String[] contentUriPrefixesToTry = new String[]{
+                                "content://downloads/public_downloads",
+                                "content://downloads/my_downloads",
+                                "content://downloads/all_downloads"
+                        };
+                        for (String contentUriPrefix : contentUriPrefixesToTry) {
+                            Uri contentUri = ContentUris.withAppendedId(Uri.parse(contentUriPrefix), Long.valueOf(id));
+                            try {
+                                String path = getDataColumn(context, contentUri, null, null);
+                                if (path != null) {
+                                    return path;
+                                }
+                            } catch (Exception e) {
                             }
-                        } catch (Exception e) {
                         }
                     }
 
@@ -259,8 +260,6 @@ public class PathResolver {
     public static boolean isGooglePhotosUri(Uri uri) {
         return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
-
-
 
 
     private static void saveFileFromUri(Context context, Uri uri, String destinationPath) {
